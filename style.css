@@ -1,0 +1,43 @@
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+#predefinedQuestions {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+#predefinedQuestions p {
+    font-weight: bold;
+}
+
+#predefinedQuestions ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+/* Adjust the color to a darker shade of violet */
+#predefinedQuestions li {
+    margin: 5px 0;
+    cursor: pointer;
+    color: #2a193abf; /* Darker violet */
+}
+
+#predefinedQuestions li:hover {
+    text-decoration: underline;
+}
+
+.submit-container {
+    text-align: right;
+    margin-top: 20px;
+}
+
+#submitButton {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
