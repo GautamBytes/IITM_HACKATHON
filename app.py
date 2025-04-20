@@ -11,12 +11,12 @@ def get_nvidia_completion(prompt_text):
     )
 
     completion = client.chat.completions.create(
-        model="meta/llama3-70b-instruct",
+        model="deepseek-ai/deepseek-r1-distill-llama-8b",
         messages=[{"role": "user", "content": prompt_text}],
         temperature=0.5,
         top_p=1,
         max_tokens=1024,
-        stream=True
+        stream=False
     )
 
     response_text = ""
