@@ -236,10 +236,10 @@ def main():
         
         def get_answer_for_question(question):
             if st.session_state["vectors"] is None:
-                st.error("Please click 'Submit' to process documents first.")
+                st.error("Please click 'Process Documents' to process documents first.")
                 return None
         
-            llm = ChatNVIDIA(model="deepseek-ai/deepseek-r1-distill-llama-8b")
+            llm = ChatNVIDIA(model="meta/llama-4-scout-17b-16e-instruct")
             prompt_template_str = """Extract the relevant clauses from the context to answer the given question in the following tabular format:
         
         | Question | Reference Clause | Clause Extraction | Summary |
@@ -274,14 +274,6 @@ def main():
                     if len(row) > 1:
                         table_data.append([col.strip() for col in row[1:-1]])
         
-                # Display the table
-                st.markdown("#### Answer")
-                st.table(table_data)
-        
-                st.write(f"Time taken: {end-start:.2f} seconds")
-        
-                print("table_data", table_data)
-        
                 # Check if table_data has at least 3 elements and each element has at least 4 sub-elements
                 if len(table_data) > 2 and all(len(row) > 3 for row in table_data):
                     # Create a list with the desired format
@@ -292,7 +284,6 @@ def main():
                         table_data[2][3]] # Summary
                     ]
                 else:
-                    st.error("The generated table does not have the expected structure.")
                     answer_data = [
                         [question, "N/A", "N/A", "The generated table does not have the expected structure."]
                     ]
@@ -301,7 +292,8 @@ def main():
                 "question": question,
                 "answer": answer_data,
                 "source_documents": response.get("source_documents", []),
-                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "time_taken": end-start
             }
         
         
@@ -338,28 +330,66 @@ def main():
         if st.button("Submit"):
             if st.session_state["vectors"] is None:
                 initialize_vectorstore()
+                
+            answers_to_display = []
+            
             if question:
                 answer = get_answer_for_question(question)
                 if answer:
                     st.session_state["answers"][question] = answer
                     st.session_state["history"].append((question, answer))
+                    answers_to_display.append((question, answer))
         
             for key in selected_keys:
-                question = iitm_questions[key]
-                answer = get_answer_for_question(question)
+                q = iitm_questions[key]
+                answer = get_answer_for_question(q)
                 if answer:
-                    st.session_state["answers"][question] = answer
-                    st.session_state["history"].append((question, answer))
+                    st.session_state["answers"][q] = answer
+                    st.session_state["history"].append((q, answer))
+                    answers_to_display.append((q, answer))
+            
+            # Display the answers
+            for q, answer_data in answers_to_display:
+                st.markdown(f"#### Question: {q}")
+                st.table(answer_data["answer"])
+                st.write(f"Time taken: {answer_data['time_taken']:.2f} seconds")
+                st.markdown("---")
         
         if st.button("Generate All Answers"):
             if st.session_state["vectors"] is None:
                 initialize_vectorstore()
-            for q_key in iitm_questions.keys():
+            
+            # Create a progress bar
+            progress_bar = st.progress(0)
+            total_questions = len(iitm_questions)
+            
+            # Container for results
+            results_container = st.container()
+            
+            # Process all questions
+            processed_answers = []
+            
+            for i, q_key in enumerate(iitm_questions.keys()):
                 question = iitm_questions[q_key]
                 answer = get_answer_for_question(question)
                 if answer:
                     st.session_state["answers"][question] = answer
                     st.session_state["history"].append((question, answer))
+                    processed_answers.append((question, answer))
+                
+                # Update progress bar
+                progress_bar.progress((i + 1) / total_questions)
+            
+            # Display a success message when all questions are processed
+            st.success(f"Generated answers for all {total_questions} questions!")
+            
+            # Display the answers in the container
+            with results_container:
+                for question, answer_data in processed_answers:
+                    st.markdown(f"#### Question: {question}")
+                    st.table(answer_data["answer"])
+                    st.write(f"Time taken: {answer_data['time_taken']:.2f} seconds")
+                    st.markdown("---")
         
         def coord(x, y, unit=1):
             x, y = x * unit, height -  y * unit
