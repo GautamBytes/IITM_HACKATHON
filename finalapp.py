@@ -12,17 +12,13 @@ from datetime import datetime
 import time
 import requests
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, PageBreak, Image, Spacer
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, PageBreak, Spacer
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-from reportlab.lib.units import cm
 from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
-from PIL import Image as PILImage
-import speech_recognition as sr
-from gtts import gTTS
 import tempfile
 import firebase_admin
 from firebase_admin import credentials
@@ -35,7 +31,7 @@ import uuid
 
 # Load the credentials and initialize Firebase
 if not firebase_admin._apps:
-  cred = credentials.Certificate("C:/Users/manch/Downloads/NLP_TOOL_12/NLP_TOOL/firebase_credentials.json")
+  cred = credentials.Certificate("/home/gautam/IITM_HACKATHON/firebase_credentials.json")
   firebase_admin.initialize_app(cred)
 
 # Initialize Firestore
@@ -101,66 +97,6 @@ def display_basic_sentiment(contract_text):
     st.write(f"Negative word count: {neg_count}")
     st.write("Note: This is a very basic analysis and should not be considered as legal advice.")
 
-
-# Voice command functions
-def recognize_speech():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.sidebar.write("Listening... Speak now.")
-        audio = recognizer.listen(source, timeout=5, phrase_time_limit=5)
-        st.sidebar.write("Processing speech...")
-    
-    try:
-        text = recognizer.recognize_google(audio)
-        return text
-    except sr.UnknownValueError:
-        st.sidebar.error("Sorry, I couldn't understand that.")
-        return None
-    except sr.RequestError:
-        st.sidebar.error("Sorry, there was an error processing your speech.")
-        return None
-    
-def text_to_speech(text):
-    tts = gTTS(text=text, lang='en')
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
-        tts.save(fp.name)
-        return fp.name
-    
-# Function to handle speech recognition in a separate thread
-def speech_recognition_thread():
-    while st.session_state.voice_mode:
-        spoken_question = recognize_speech()
-        if spoken_question:
-            st.session_state.question = spoken_question
-            st.experimental_rerun()
-
-
-# Load the logo image
-logo_path = "Team_images/logo.png"
-
-logo_base64 = None
-if os.path.exists(logo_path):
-    logo_image = PILImage.open(logo_path)
-    import base64
-    from io import BytesIO
-
-    def image_to_base64(img):
-        buffered = BytesIO()
-        img.save(buffered, format="PNG")
-        return base64.b64encode(buffered.getvalue()).decode()
-
-    logo_base64 = image_to_base64(logo_image)
-
-if logo_base64:
-    st.markdown(
-        f"""
-        <div style="display: flex; justify-content: center; align-items: center; background-color: transparent; padding: -250px 0;">
-            <img src="data:image/png;base64,{logo_base64}" style="height: 280px; width: auto;">
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
 width, height = A4
 styles = getSampleStyleSheet()
 styleN = styles["BodyText"]
@@ -182,8 +118,6 @@ if "selected_question" not in st.session_state:
     st.session_state["selected_question"] = None
 if "shareable_link" not in st.session_state:
     st.session_state["shareable_link"] = None
-if 'voice_mode' not in st.session_state:
-    st.session_state.voice_mode = False
 if 'question' not in st.session_state:
     st.session_state.question = ''
 if 'uploaded_files' not in st.session_state:
@@ -305,7 +239,7 @@ def main():
                 st.error("Please click 'Submit' to process documents first.")
                 return None
         
-            llm = ChatNVIDIA(model="meta/llama3-70b-instruct")
+            llm = ChatNVIDIA(model="deepseek-ai/deepseek-r1-distill-llama-8b")
             prompt_template_str = """Extract the relevant clauses from the context to answer the given question in the following tabular format:
         
         | Question | Reference Clause | Clause Extraction | Summary |
@@ -390,13 +324,7 @@ def main():
         # Layout for main input area
         st.markdown("## Ask Your Question")
         
-        # Add a prominent button for voice input
-        if st.button("🎤 Voice Input"):
-            spoken_question = recognize_speech()
-            if spoken_question:
-                st.session_state.question = spoken_question
-        
-        question = st.text_area("Enter your question (max 250 characters) or use voice input:", 
+        question = st.text_area("Enter your question (max 250 characters):", 
                                 value=st.session_state.question,
                                 max_chars=250, height=100)
         
@@ -415,13 +343,6 @@ def main():
                 if answer:
                     st.session_state["answers"][question] = answer
                     st.session_state["history"].append((question, answer))
-        
-                    # Text-to-speech for the answer if voice mode is enabled
-                    if st.session_state.voice_mode:
-                        summary = answer['answer'][0][3] if len(answer['answer'][0]) > 3 else "No summary available."
-                        audio_file = text_to_speech(summary)
-                        st.audio(audio_file)
-                        os.unlink(audio_file)  # Clean up the temporary file
         
             for key in selected_keys:
                 question = iitm_questions[key]
@@ -450,44 +371,6 @@ def main():
                 doc = SimpleDocTemplate(pdf_filename, pagesize=letter)
                 styles = getSampleStyleSheet()
                 elements = []
-        
-                # Define a custom style for the team information
-                custom_style = ParagraphStyle(
-                    name='CustomStyle',
-                    fontSize=15,
-                    spaceAfter=12,  # Space between paragraphs
-                )
-        
-                # Define a style for the team name with larger font and centered alignment
-                team_name_style = ParagraphStyle(
-                    name='TeamNameStyle',
-                    fontSize=32,
-                    alignment=1,  # Center alignment
-                    spaceAfter=24,  # Space after the team name
-                )
-        
-                # Add the team name at the top with the new style
-                elements.append(Paragraph("Team Name: Clause-Crafters", team_name_style))
-                elements.append(Spacer(1, 24))  # Add space after the title
-        
-                # Team images and names
-                team_images = [
-                    {"image": "Team_images/gautam.jpg", "name": "Gautam Manchandani (TL)"},
-                    {"image": "Team_images/madhur.jpg", "name": "Madhur Thareja"},
-                    {"image": "Team_images/ishita.jpg", "name": "Ishita Sharma"},
-                    {"image": "Team_images/palak.jpg", "name": "Palak Kumari"}
-                ]
-        
-                # Add team member images and names
-                for member in team_images:
-                    try:
-                        elements.append(Image(member["image"], width=1.5 * inch, height=1.5 * inch))
-                        elements.append(Paragraph(member["name"], custom_style))
-                        elements.append(Spacer(1, 12))
-                    except Exception as e:
-                        st.error(f"Error loading image {member['image']}: {e}")
-        
-                elements.append(PageBreak())
         
                 title_style = styles['Title']
                 title_style.fontSize = 24  # Increase font size of the title
@@ -610,24 +493,10 @@ def main():
     st.sidebar.header("Made with 💜")
     st.sidebar.header("History")
     
-    # Voice command support in sidebar
-    st.sidebar.title("Voice Commands")
-    st.session_state.voice_mode = st.sidebar.checkbox("Enable Voice Mode", value=st.session_state.voice_mode)
-    
-    if st.session_state.voice_mode:
-        if st.sidebar.button("Start Listening"):
-            spoken_question = recognize_speech()
-            if spoken_question:
-                st.session_state.question = spoken_question
-    
-    # Modify the part where answers are displayed to include a "Read Answer" button
+    # Display history in sidebar
     for idx, (question, answer_data) in enumerate(st.session_state["history"], 1):
         with st.sidebar.expander(f"Q{idx}: {question}"):
             st.write(answer_data['answer'])
-            if st.button(f"🔊 Read Answer {idx}"):
-                summary = answer_data['answer'][0][3] if len(answer_data['answer'][0]) > 3 else "No summary available."
-                audio_file = text_to_speech(summary)
-                st.audio(audio_file, format='audio/mp3')
-                os.unlink(audio_file)  # Clean up the temporary file
+            
 if __name__ == "__main__":
     main()
