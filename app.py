@@ -11,7 +11,7 @@ def get_nvidia_completion(prompt_text):
     )
 
     completion = client.chat.completions.create(
-        model="deepseek-ai/deepseek-r1-distill-llama-8b",
+        model="meta/llama-4-scout-17b-16e-instruct",
         messages=[{"role": "user", "content": prompt_text}],
         temperature=0.5,
         top_p=1,
@@ -30,6 +30,4 @@ if __name__ == "__main__":
     prompt_text = "Provide me an article on Machine Learning"
     response = get_nvidia_completion(prompt_text)
     print(response)
-
-
-
+    
