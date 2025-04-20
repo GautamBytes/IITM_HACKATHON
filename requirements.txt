@@ -1,9 +1,31 @@
-openai
-python-dotenv
-langchain_nvidia_ai_endpoints
-langchain_community
-faiss-cpu
-streamlit
-pypdf
-fpdf
-unidecode
+# Web frameworks
+streamlit                           # interactive UI 
+fastapi                             # API backend 
+uvicorn[standard]                   # ASGI server 
+pydantic                            # data validation 
+
+# Environment & HTTP
+python-dotenv                       # .env file loader 
+requests                            # HTTP client 
+
+# PDF handling
+pypdf                               # PDF parsing/merging 
+reportlab                           # PDF generation 
+
+# Vector stores & embeddings
+faiss-cpu                           # vector similarity search 
+langchain                           # core LLM chains 
+langchain-core                      # core abstractions 
+langchain-community                 # community integrations 
+langchain-nvidia-ai-endpoints       # NVIDIA model endpoints 
+
+# Cloud SDK
+firebase-admin                      # Firebase Admin SDK 
+
+# Media & speech
+Pillow                              # image processing :
+SpeechRecognition                   # speech‑to‑text 
+gTTS                                # text‑to‑speech 
+
+# Text utilities
+Unidecode                           # Unicode → ASCII 
